@@ -8,7 +8,7 @@ class FormBot extends ActivityHandler {
     constructor(conversationState, userState, dialog) {
         super();
         
-        await this.checkRequire(conversationState,userState,dialog);
+        this.checkRequire(conversationState,userState,dialog);
 
         this.conversationState = conversationState;
         this.userState = userState;
@@ -37,7 +37,7 @@ class FormBot extends ActivityHandler {
         });
     }
 
-    async checkRequire(conversation,user,dialog){
+    checkRequire(conversation,user,dialog){
         if (!conversation) throw new Error('[DialogBot]: Missing parameter. conversationState is required');
         if (!user) throw new Error('[DialogBot]: Missing parameter. userState is required');
         if (!dialog) throw new Error('[DialogBot]: Missing parameter. dialog is required');
@@ -45,7 +45,7 @@ class FormBot extends ActivityHandler {
 
     async run(context) {
         await super.run(context);
-        
+
         await this.conversationState.saveChanges(context, false);
         await this.userState.saveChanges(context,false);
     }

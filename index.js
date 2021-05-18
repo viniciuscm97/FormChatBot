@@ -12,11 +12,11 @@ const restify = require('restify');
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
-const { BotFrameworkAdapter, MemoryStorage, UserState} = require('botbuilder');
+const { BotFrameworkAdapter, MemoryStorage, UserState, ConversationState} = require('botbuilder');
 
 // This bot's main dialog.
 const { FormBot } = require('./bot');
-const { FormClientDialog } = require('./dialogs/formClient');
+const { FormClientDialog } = require('./dialogs/formClientDialog');
 
 
 // Create HTTP server
@@ -69,7 +69,7 @@ const dialog = new FormClientDialog(userState);
 const myBot = new FormBot(conversationState,userState,dialog);
 
 // Listen for incoming requests.
-server.post('/api/messages', (req, res) => {
+server.post('/form', (req, res) => {
     adapter.processActivity(req, res, async (context) => {
         // Route to main dialog.
         await myBot.run(context);

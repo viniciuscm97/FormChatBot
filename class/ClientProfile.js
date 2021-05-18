@@ -1,10 +1,13 @@
 class ClientProfile {
-    constructor(transport, name, age, picture) {
-        this.transport = transport;
+    constructor(name, age, cpf,cep,birth,gender) {
         this.name = name;
         this.age = age;
-        this.picture = picture;
+        this.gender = gender;
+        this.cpf = cpf;
+        this.cep = cep;
+        this.birth = birth;
     }
 }
 
 module.exports.ClientProfile = ClientProfile;
+
