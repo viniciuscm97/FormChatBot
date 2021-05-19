@@ -24,6 +24,8 @@ const CEP_PROMPT = 'CEP_PROMPT';
 const BIRTH_PROMPT = 'BIRTH_PROMPT';
 const USER_PROFILE = 'USER_PROFILE';
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
+var clientState = '';
+var clientCity = '';
 
 class FormClientDialog extends ComponentDialog{
     
@@ -31,13 +33,11 @@ class FormClientDialog extends ComponentDialog{
         super('formClientDialog')
         
         this.clientProfile = userState.createProperty(USER_PROFILE);
-        this.clientState = '';
-        this.clientCity = '';
 
         // Nome, idade, gênero (masculino, feminino, ou outro), CPF, CEP, data de aniversário.
         this.addDialog(new TextPrompt(NAME_PROMPT));
         this.addDialog(new NumberPrompt(AGE_PROMPT, this.agePromptValidator));
-        this.addDialog(new NumberPrompt(CPF_PROMPT, this.cpfPropmtValidator));
+        this.addDialog(new TextPrompt(CPF_PROMPT, this.cpfPropmtValidator));
         this.addDialog(new NumberPrompt(CEP_PROMPT, this.cepPromptValidator));
         this.addDialog(new TextPrompt(BIRTH_PROMPT));
         this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT));
@@ -120,21 +120,60 @@ class FormClientDialog extends ComponentDialog{
         step.values.birth = step.result;
         return await step.prompt(CONFIRM_PROMPT, { prompt: 'Confirma as informações enviadas?' });
     }
+    
+    async cpfPropmtValidator (promptContext) {
+        return promptContext.recognized.succeeded && promptContext.recognized.value.toString().length == 11;
+    }
+    
+    async agePromptValidator (promptContext) {
+        return promptContext.recognized.succeeded && promptContext.recognized.value > 0 && promptContext.recognized.value < 150;
+    }
+    
+    async cepPromptValidator (promptContext) {
+        var cepSomenteNumeros = promptContext.recognized.value.toString().replace(/\D/g, '');
+        
+        if(!(/^[0-9]{8}$/.test(cepSomenteNumeros))){
+            promptContext.context.sendActivity('O CEP deve conter 8 dígitos!')
+            return false;
+        }
 
+        
+        var cepValidoNaBase = false;
 
+        await fetch(`https://viacep.com.br/ws/${cepSomenteNumeros}/json/`)
+        .then(res => res.json())
+        .then(data => {
+            if(!data.erro){
+                clientState = data.uf;
+                clientCity = data.localidade;
+                cepValidoNaBase = true;
+            }
+        }).catch( err => console.log(err))
+
+        if(cepValidoNaBase){    
+            console.log(clientCity+' 163')
+            console.log(clientState+' 164')
+            return true
+        }else{
+            promptContext.context.sendActivity('O CEP não foi encontrado na base de dados!');      
+            return false;
+        }
+    }
     async finalStep(step) {
         if (step.result) {
             // Get the current profile object from user state.
             const clientProfile = await this.clientProfile.get(step.context, new ClientProfile());
 
+            console.log(clientCity+' 176')
+            console.log(clientState+' 177')
             clientProfile.name = step.values.name;
             clientProfile.age = step.values.age;
             clientProfile.gender = step.values.gender;
             clientProfile.cpf = step.values.cpf;
             clientProfile.cep = step.values.cep;
             clientProfile.birth = step.values.birth;
-            clientProfile.city = this.clientCity;
-            clientProfile.state = this.clientState;
+            clientProfile.city = clientCity;
+            clientProfile.state = clientState;
 
 
             let cpfFormatted = clientProfile.cpf.toString().replace(/(\d{3})?(\d{3})?(\d{3})?(\d{2})/, "$1.$2.$3-$4");
@@ -153,49 +192,8 @@ class FormClientDialog extends ComponentDialog{
         // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is the end.
         return await step.endDialog();
     }
-
-    validaCepUrl(data) {
-        this.clientState = data.uf;
-        this.clientCity = data.localidade;
-
-    }
-
-    async cpfPropmtValidator (promptContext) {
-
-        return promptContext.recognized.succeeded && promptContext.recognized.value.toString().length == 11;
-    }
-
-    async agePromptValidator (promptContext) {
-        return promptContext.recognized.succeeded && promptContext.recognized.value > 0 && promptContext.recognized.value < 150;
-    }
-
-    async cepPromptValidator (promptContext) {
-        var cepSomenteNumeros = promptContext.recognized.value.toString().replace(/\D/g, '');
-        var cepValidoNaBase = false;
-
-        await fetch(`https://viacep.com.br/ws/${cepSomenteNumeros}/json/`)
-        .then(res => res.json())
-        .then(data => {
-            if(!data.erro){
-                this.clientState = data.uf;
-                this.clientCity = data.localidade;
-                cepValidoNaBase = true;
-            }
-        }).catch( err => console.log(err))
-
-        if(/^[0-9]{8}$/.test(cepSomenteNumeros) && cepValidoNaBase){    
-            return true
-        }else{
-            if (!cepValidoNaBase) {
-                promptContext.context.sendActivity('O CEP não foi encontrado na base de dados!')
-            } else {
-                promptContext.context.sendActivity('O CEP deve conter 8 dígitos!')
-            }
-            return false;
-        }
-    }
-
-
+    
+    
 
 
 
