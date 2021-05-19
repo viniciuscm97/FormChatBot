@@ -140,7 +140,7 @@ class FormClientDialog extends ComponentDialog{
         const ano = data[3];
 
 
-        if (data && (dia < 32 || mes < 12)) {
+        if (data && (dia < 32 && mes < 12)) {
             birthday = new Date(ano,mes,dia);
 
             return true;
