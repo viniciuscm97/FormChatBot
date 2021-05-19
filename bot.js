@@ -16,17 +16,14 @@ class FormBot extends ActivityHandler {
         this.dialogState = this.conversationState.createProperty('DialogState');
 
         this.onMessage(async (context, next) => {
-            console.log('Running dialog with Message Activity.');
 
-            // Run the Dialog with the new message Activity.
             await this.dialog.run(context, this.dialogState);
-
             await next();
         });
 
         this.onMembersAdded(async (context, next) => {
             const membersAdded = context.activity.membersAdded;
-            const welcomeText = `Hello and welcome! 
+            const welcomeText = `Bem vindo!
             \n Digite algo para começar: `;
             for (let cnt = 0; cnt < membersAdded.length; ++cnt) {
                 if (membersAdded[cnt].id !== context.activity.recipient.id) {

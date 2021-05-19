@@ -26,6 +26,7 @@ const USER_PROFILE = 'USER_PROFILE';
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 var clientState = '';
 var clientCity = '';
+var birthday = '';
 
 class FormClientDialog extends ComponentDialog{
     
@@ -39,7 +40,7 @@ class FormClientDialog extends ComponentDialog{
         this.addDialog(new NumberPrompt(AGE_PROMPT, this.agePromptValidator));
         this.addDialog(new TextPrompt(CPF_PROMPT, this.cpfPropmtValidator));
         this.addDialog(new NumberPrompt(CEP_PROMPT, this.cepPromptValidator));
-        this.addDialog(new TextPrompt(BIRTH_PROMPT));
+        this.addDialog(new TextPrompt(BIRTH_PROMPT, this.birthPrompValidator));
         this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT));
         this.addDialog(new ChoicePrompt(CHOICE_PROMPT));
         // this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT));
@@ -97,7 +98,7 @@ class FormClientDialog extends ComponentDialog{
     async cpfStep(step) {
         step.values.gender = step.result.value;
 
-        const promptOptions = { prompt: 'Por favor insira seu CPF (somente números) :\n EX: 02569011616', retryPrompt: 'O CPF deve ter 11 digitos!' };
+        const promptOptions = { prompt: `Por favor insira seu CPF (somente números) :\n EX: 02569011616`, retryPrompt: 'O CPF deve ter 11 digitos e somente números!' };
 
         return await step.prompt(CPF_PROMPT, promptOptions);
     }
@@ -105,7 +106,7 @@ class FormClientDialog extends ComponentDialog{
     async cepStep(step) {
         step.values.cpf = step.result;
 
-        const promptOptions = { prompt: 'Por favor insira seu CEP (somente números): \n EX: 9212050', retryPrompt: 'O CEP esta incorreto. Por favor digite novamente:' };
+        const promptOptions = { prompt: `Por favor insira seu CEP (somente números): \n EX: 9212050`, retryPrompt: 'O CEP esta incorreto. Por favor digite novamente:' };
 
         return await step.prompt(CEP_PROMPT, promptOptions);
     }
@@ -113,7 +114,9 @@ class FormClientDialog extends ComponentDialog{
     async birthdayStep(step) {
         step.values.cep = step.result;
 
-        return await step.prompt(BIRTH_PROMPT, 'insira sua data de nascimento:');
+        const promptOptions = { prompt: `Insira sua data de nascimento (DD/MM/AAAA):\n EX: 31/12/1997`, retryPrompt: 'A data esta incorreta. Por favor digite novamente:' };
+
+        return await step.prompt(BIRTH_PROMPT, promptOptions);
     }
 
     async confirmStep(step) {
@@ -128,9 +131,29 @@ class FormClientDialog extends ComponentDialog{
     async agePromptValidator (promptContext) {
         return promptContext.recognized.succeeded && promptContext.recognized.value > 0 && promptContext.recognized.value < 150;
     }
+    async birthPrompValidator (promptContext) {
+        const dataSemletras = promptContext.recognized.value.toString().replace(/[A-Za-z]/g, '');
+
+        const data = /^(\d{2})[/](\d{2})[/](\d{4})$/.exec(dataSemletras);
+        const dia = data[1];
+        const mes = data[2]-1;
+        const ano = data[3];
+
+
+        if (data && (dia < 32 || mes < 12)) {
+            birthday = new Date(ano,mes,dia);
+
+            return true;
+        } else {
+            promptContext.context.sendActivity('Formato incorreto!')
+            return false;
+        }
+            
+        
+    }
     
     async cepPromptValidator (promptContext) {
-        var cepSomenteNumeros = promptContext.recognized.value.toString().replace(/\D/g, '');
+        const cepSomenteNumeros = promptContext.recognized.value.toString().replace(/\D/g, '');
         
         if(!(/^[0-9]{8}$/.test(cepSomenteNumeros))){
             promptContext.context.sendActivity('O CEP deve conter 8 dígitos!')
@@ -150,9 +173,7 @@ class FormClientDialog extends ComponentDialog{
             }
         }).catch( err => console.log(err))
 
-        if(cepValidoNaBase){    
-            console.log(clientCity+' 163')
-            console.log(clientState+' 164')
+        if(cepValidoNaBase){
             return true
         }else{
             promptContext.context.sendActivity('O CEP não foi encontrado na base de dados!');      
@@ -164,21 +185,20 @@ class FormClientDialog extends ComponentDialog{
             // Get the current profile object from user state.
             const clientProfile = await this.clientProfile.get(step.context, new ClientProfile());
 
-            console.log(clientCity+' 176')
-            console.log(clientState+' 177')
             clientProfile.name = step.values.name;
             clientProfile.age = step.values.age;
             clientProfile.gender = step.values.gender;
             clientProfile.cpf = step.values.cpf;
             clientProfile.cep = step.values.cep;
-            clientProfile.birth = step.values.birth;
+            clientProfile.birth = birthday;
             clientProfile.city = clientCity;
             clientProfile.state = clientState;
 
 
             let cpfFormatted = clientProfile.cpf.toString().replace(/(\d{3})?(\d{3})?(\d{3})?(\d{2})/, "$1.$2.$3-$4");
 
-            let msg = `Seu nome é ${ clientProfile.name }, você nasceu no dia ${ clientProfile.birth }, e seu gênero é ${ clientProfile.gender }.
+            let msg = `Seu nome é ${ clientProfile.name }, você nasceu no dia ${ clientProfile.birth.getDate() } do ${ clientProfile.birth.getMonth() } de ${ clientProfile.birth.getFullYear() },
+             e seu gênero é ${ clientProfile.gender }.
             Seu CPF é ${ cpfFormatted }, e você reside na cidade ${clientProfile.city} - ${clientProfile.state}.
             \n Seja bem-vindo! 😊`;
             msg += '.';
