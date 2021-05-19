@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-const { ActionTypes,ActivityHandler, CardFactory, MessageFactory } = require('botbuilder');
+const { ActivityHandler,  MessageFactory } = require('botbuilder');
 
 class FormBot extends ActivityHandler {
 
@@ -26,7 +26,8 @@ class FormBot extends ActivityHandler {
 
         this.onMembersAdded(async (context, next) => {
             const membersAdded = context.activity.membersAdded;
-            const welcomeText = 'Hello and welcome!';
+            const welcomeText = `Hello and welcome! 
+            \n Digite algo para começar: `;
             for (let cnt = 0; cnt < membersAdded.length; ++cnt) {
                 if (membersAdded[cnt].id !== context.activity.recipient.id) {
                     await context.sendActivity(MessageFactory.text(welcomeText, welcomeText));
@@ -50,32 +51,6 @@ class FormBot extends ActivityHandler {
         await this.userState.saveChanges(context,false);
     }
 
-    async sendIntroCard(context) {
-        const card = CardFactory.heroCard(
-            'Welcome to Bot Framework!',
-            'Welcome to Welcome Users bot sample! This Introduction card is a great way to introduce your Bot to the user and suggest some things to get them started. We use this opportunity to recommend a few next steps for learning more creating and deploying bots.',
-            ['https://aka.ms/bf-welcome-card-image'],
-            [
-                {
-                    type: ActionTypes.OpenUrl,
-                    title: 'Get an overview',
-                    value: 'https://docs.microsoft.com/en-us/azure/bot-service/?view=azure-bot-service-4.0'
-                },
-                {
-                    type: ActionTypes.OpenUrl,
-                    title: 'Ask a question',
-                    value: 'https://stackoverflow.com/questions/tagged/botframework'
-                },
-                {
-                    type: ActionTypes.OpenUrl,
-                    title: 'Learn how to deploy',
-                    value: 'https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-deploy-azure?view=azure-bot-service-4.0'
-                }
-            ]
-        );
-
-        await context.sendActivity({ attachments: [card] });
-    }
 }
 
 module.exports.FormBot = FormBot;

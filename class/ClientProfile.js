@@ -6,6 +6,8 @@ class ClientProfile {
         this.cpf = cpf;
         this.cep = cep;
         this.birth = birth;
+        this.state = '';
+        this.city ='';
     }
 }
 
