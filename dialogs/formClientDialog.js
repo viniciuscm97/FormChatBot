@@ -151,15 +151,21 @@ class FormClientDialog extends ComponentDialog{
         const dataSemletras = promptContext.recognized.value.toString().replace(/[A-Za-z]/g, '');
 
         const data = /^(\d{2})[/](\d{2})[/](\d{4})$/.exec(dataSemletras);
-        const dia = data[1];
-        const mes = data[2]-1;
-        const ano = data[3];
+        
+        
+        if (data) {
+            console.log(data[2])
+            const dia = data[1];
+            const mes = data[2]-1;
+            const ano = data[3];
 
+            console.log(mes)
+            if (dia < 32 && mes < 12) {
 
-        if (data && (dia < 32 && mes < 12)) {
-            birthday = new Date(ano,mes,dia);
-
-            return true;
+                birthday = new Date(ano,mes,dia);
+                console.log(birthday)
+                return true;        
+            }
         } else {
             promptContext.context.sendActivity('Formato incorreto!')
             return false;
@@ -213,7 +219,7 @@ class FormClientDialog extends ComponentDialog{
 
             let cpfFormatted = clientProfile.cpf.toString().replace(/(\d{3})?(\d{3})?(\d{3})?(\d{2})/, "$1.$2.$3-$4");
 
-            let msg = `Seu nome é ${ clientProfile.name }, você nasceu no dia ${ clientProfile.birth.getDate() } do ${ clientProfile.birth.getMonth() } de ${ clientProfile.birth.getFullYear() },
+            let msg = `Seu nome é ${ clientProfile.name }, você nasceu no dia ${ clientProfile.birth.getDate() } do ${ clientProfile.birth.getMonth() +1} de ${ clientProfile.birth.getFullYear() },
              e seu gênero é ${ clientProfile.gender }.
             Seu CPF é ${ cpfFormatted }, e você reside na cidade ${clientProfile.city} - ${clientProfile.state}.
             \n Seja bem-vindo! 😊`;
