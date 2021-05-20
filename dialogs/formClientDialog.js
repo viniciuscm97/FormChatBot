@@ -17,6 +17,7 @@ const fetch = require("node-fetch");
 
 const CHOICE_PROMPT = 'CHOICE_PROMPT';
 const CONFIRM_PROMPT = 'CONFIRM_PROMPT';
+const CONFIRM_PROMPT_NAME = 'CONFIRM_PROMPT_NAME';
 const NAME_PROMPT = 'NAME_PROMPT';
 const AGE_PROMPT = 'AGE_PROMPT';
 const CPF_PROMPT = 'CPF_PROMPT';
@@ -35,17 +36,14 @@ class FormClientDialog extends ComponentDialog{
         
         this.clientProfile = userState.createProperty(USER_PROFILE);
 
-        // Nome, idade, gênero (masculino, feminino, ou outro), CPF, CEP, data de aniversário.
-        this.addDialog(new TextPrompt(NAME_PROMPT));
+        this.addDialog(new TextPrompt(NAME_PROMPT, this.namePromptValidator));
         this.addDialog(new NumberPrompt(AGE_PROMPT, this.agePromptValidator));
         this.addDialog(new TextPrompt(CPF_PROMPT, this.cpfPropmtValidator));
-        this.addDialog(new NumberPrompt(CEP_PROMPT, this.cepPromptValidator));
+        this.addDialog(new TextPrompt(CEP_PROMPT, this.cepPromptValidator));
         this.addDialog(new TextPrompt(BIRTH_PROMPT, this.birthPrompValidator));
         this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT));
+        this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT_NAME));
         this.addDialog(new ChoicePrompt(CHOICE_PROMPT));
-        // this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT));
-        // this.addDialog(new NumberPrompt(NUMBER_PROMPT, this.agePromptValidator));
-        // this.addDialog(new AttachmentPrompt(ATTACHMENT_PROMPT, this.picturePromptValidator));
 
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
             this.nameStep.bind(this),
@@ -74,17 +72,19 @@ class FormClientDialog extends ComponentDialog{
     }
 
     async nameStep(step){
+        const promptOptions = { prompt: 'Por favor insira seu nome: ', retryPrompt: 'Nome não foi encontrado na base de dados do IBGE. Digite novamente:' };
         
-        return await step.prompt(NAME_PROMPT, 'Por favor insira seu nome:');        
+        return await step.prompt(NAME_PROMPT, promptOptions); 
     }
+    
+
 
     async ageStep(step){
-        step.values.name = step.result;
-
+        step.values.name = step.result
+        
         const promptOptions = { prompt: 'Por favor digite a sua idade: ', retryPrompt: 'A idade deve ser entre 0 e 150 anos. Digite novamente:' };
-
-
         return await step.prompt(AGE_PROMPT,promptOptions);
+        
     }
 
     async genderStep(step) {
@@ -122,6 +122,22 @@ class FormClientDialog extends ComponentDialog{
     async confirmStep(step) {
         step.values.birth = step.result;
         return await step.prompt(CONFIRM_PROMPT, { prompt: 'Confirma as informações enviadas?' });
+    }
+
+    async namePromptValidator (promptContext) {
+        const nome = promptContext.recognized.value;
+        let nomeValido = true;
+
+        await fetch(`https://servicodados.ibge.gov.br/api/v2/censos/nomes/${nome}`)
+            .then(res => res.json())
+            .then(data => { if(!data[0])  nomeValido = false; });
+    
+
+        if (!nomeValido) {
+            return false;
+        }
+
+        return nomeValido;
     }
     
     async cpfPropmtValidator (promptContext) {
