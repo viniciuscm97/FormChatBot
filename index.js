@@ -69,7 +69,7 @@ const dialog = new FormClientDialog(userState);
 const myBot = new FormBot(conversationState,userState,dialog);
 
 // Listen for incoming requests.
-server.post('/form', (req, res) => {
+server.post('/api/messages', (req, res) => {
     adapter.processActivity(req, res, async (context) => {
         // Route to main dialog.
         await myBot.run(context);

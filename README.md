@@ -34,4 +34,4 @@ Using API's to CEP and name
 
 - Launch Bot Framework Emulator
 - File -> Open Bot
-- Enter a Bot URL of `http://localhost:3978/form`
+- Enter a Bot URL of `http://localhost:3978/api/messages`

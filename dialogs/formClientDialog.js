@@ -1,5 +1,5 @@
 const {
-        ChoiceFactory,
+    ChoiceFactory,     
     ChoicePrompt,
     ComponentDialog,
     ConfirmPrompt,
@@ -7,7 +7,8 @@ const {
     DialogTurnStatus,
     NumberPrompt,
     TextPrompt,
-    WaterfallDialog
+    WaterfallDialog,
+    DateTimePrompt
 } = require('botbuilder-dialogs');
 
 
@@ -17,7 +18,6 @@ const fetch = require("node-fetch");
 
 const CHOICE_PROMPT = 'CHOICE_PROMPT';
 const CONFIRM_PROMPT = 'CONFIRM_PROMPT';
-const CONFIRM_PROMPT_NAME = 'CONFIRM_PROMPT_NAME';
 const NAME_PROMPT = 'NAME_PROMPT';
 const AGE_PROMPT = 'AGE_PROMPT';
 const CPF_PROMPT = 'CPF_PROMPT';
@@ -27,7 +27,7 @@ const USER_PROFILE = 'USER_PROFILE';
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 var clientState = '';
 var clientCity = '';
-var birthday = '';
+var birthday = {day: '', month: ''};
 
 class FormClientDialog extends ComponentDialog{
     
@@ -40,9 +40,8 @@ class FormClientDialog extends ComponentDialog{
         this.addDialog(new NumberPrompt(AGE_PROMPT, this.agePromptValidator));
         this.addDialog(new TextPrompt(CPF_PROMPT, this.cpfPropmtValidator));
         this.addDialog(new TextPrompt(CEP_PROMPT, this.cepPromptValidator));
-        this.addDialog(new TextPrompt(BIRTH_PROMPT, this.birthPrompValidator));
+        this.addDialog(new DateTimePrompt(BIRTH_PROMPT, this.birthPrompValidator));
         this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT));
-        this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT_NAME));
         this.addDialog(new ChoicePrompt(CHOICE_PROMPT));
 
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
@@ -80,8 +79,8 @@ class FormClientDialog extends ComponentDialog{
 
 
     async ageStep(step){
-        step.values.name = step.result
-        
+
+        step.values.name = step.result        
         const promptOptions = { prompt: 'Por favor digite a sua idade: ', retryPrompt: 'A idade deve ser entre 0 e 150 anos. Digite novamente:' };
         return await step.prompt(AGE_PROMPT,promptOptions);
         
@@ -96,35 +95,38 @@ class FormClientDialog extends ComponentDialog{
         });
     }
     async cpfStep(step) {
+
         step.values.gender = step.result.value;
-
-        const promptOptions = { prompt: `Por favor insira seu CPF (somente números) :\n EX: 02569011616`, retryPrompt: 'O CPF deve ter 11 digitos e somente números!' };
-
+        const promptOptions = { prompt: `Por favor insira seu CPF:\n EX: 02569011616 ou 025.690.116/16`, retryPrompt: 'O CPF deve ter 11 digitos!' };
         return await step.prompt(CPF_PROMPT, promptOptions);
     }
 
     async cepStep(step) {
-        step.values.cpf = step.result;
 
+        step.values.cpf = step.result.toString().replace(/\D/g, '');
         const promptOptions = { prompt: `Por favor insira seu CEP (somente números): \n EX: 9212050`, retryPrompt: 'O CEP esta incorreto. Por favor digite novamente:' };
-
         return await step.prompt(CEP_PROMPT, promptOptions);
     }
 
     async birthdayStep(step) {
+        
         step.values.cep = step.result;
-
-        const promptOptions = { prompt: `Insira sua data de nascimento (DD/MM/AAAA):\n EX: 31/12/1997`, retryPrompt: 'A data esta incorreta. Por favor digite novamente:' };
-
+        const promptOptions = { prompt: `Insira sua data de nascimento (DD/MM):\n EX: 31/12`, retryPrompt: 'A data esta incorreta. Por favor digite novamente:' };
         return await step.prompt(BIRTH_PROMPT, promptOptions);
     }
 
     async confirmStep(step) {
         step.values.birth = step.result;
-        return await step.prompt(CONFIRM_PROMPT, { prompt: 'Confirma as informações enviadas?' });
+        
+        return await step.prompt(CONFIRM_PROMPT, {
+            prompt: 'Confirma as informações enviadas: ',
+            choices: ChoiceFactory.toChoices(['Sim', 'Não'])
+
+    });
     }
 
     async namePromptValidator (promptContext) {
+
         const nome = promptContext.recognized.value;
         let nomeValido = true;
 
@@ -134,6 +136,7 @@ class FormClientDialog extends ComponentDialog{
     
 
         if (!nomeValido) {
+            
             return false;
         }
 
@@ -141,33 +144,28 @@ class FormClientDialog extends ComponentDialog{
     }
     
     async cpfPropmtValidator (promptContext) {
-        return promptContext.recognized.succeeded && promptContext.recognized.value.toString().length == 11;
+        const cpfSomenteNumeros = promptContext.recognized.value.toString().replace(/\D/g, '');
+        
+        return cpfSomenteNumeros.length == 11;
     }
     
     async agePromptValidator (promptContext) {
         return promptContext.recognized.succeeded && promptContext.recognized.value > 0 && promptContext.recognized.value < 150;
     }
     async birthPrompValidator (promptContext) {
-        const dataSemletras = promptContext.recognized.value.toString().replace(/[A-Za-z]/g, '');
 
-        const data = /^(\d{2})[/](\d{2})[/](\d{4})$/.exec(dataSemletras);
-        
-        
+        if(!promptContext.recognized.value) return false;
+
+        const data = /^(\D{4})[-](\d{2})[-](\d{2})$/.exec(promptContext.recognized.value[0].timex);        
         if (data) {
-            console.log(data[2])
-            const dia = data[1];
-            const mes = data[2]-1;
-            const ano = data[3];
 
-            console.log(mes)
-            if (dia < 32 && mes < 12) {
-
-                birthday = new Date(ano,mes,dia);
-                console.log(birthday)
-                return true;        
-            }
+            const mes = data[2];
+            const dia = data[3];
+            birthday.day = dia;
+            birthday.month = mes;
+            return true;        
         } else {
-            promptContext.context.sendActivity('Formato incorreto!')
+            
             return false;
         }
             
@@ -175,14 +173,11 @@ class FormClientDialog extends ComponentDialog{
     }
     
     async cepPromptValidator (promptContext) {
+
         const cepSomenteNumeros = promptContext.recognized.value.toString().replace(/\D/g, '');
         
-        if(!(/^[0-9]{8}$/.test(cepSomenteNumeros))){
-            promptContext.context.sendActivity('O CEP deve conter 8 dígitos!')
-            return false;
-        }
+        if(!(/^[0-9]{8}$/.test(cepSomenteNumeros)))  return false;
 
-        
         var cepValidoNaBase = false;
 
         await fetch(`https://viacep.com.br/ws/${cepSomenteNumeros}/json/`)
@@ -195,28 +190,24 @@ class FormClientDialog extends ComponentDialog{
             }
         }).catch( err => console.log(err))
 
-        if(cepValidoNaBase){
-            return true
-        }else{
-            promptContext.context.sendActivity('O CEP não foi encontrado na base de dados!');      
-            return false;
-        }
+        return cepValidoNaBase
     }
     async finalStep(step) {
+
         if (step.result) {
-            // Get the current profile object from user state.
             const clientProfile = await this.clientProfile.get(step.context, new ClientProfile());
+
+            let anoNascimento = this.calculaIdade(step.values.age);
 
             clientProfile.name = step.values.name;
             clientProfile.age = step.values.age;
             clientProfile.gender = step.values.gender;
             clientProfile.cpf = step.values.cpf;
             clientProfile.cep = step.values.cep;
-            clientProfile.birth = birthday;
+            clientProfile.birth = new Date(anoNascimento,birthday.month -1,birthday.day);
             clientProfile.city = clientCity;
             clientProfile.state = clientState;
-
-
+            
             let cpfFormatted = clientProfile.cpf.toString().replace(/(\d{3})?(\d{3})?(\d{3})?(\d{2})/, "$1.$2.$3-$4");
 
             let msg = `Seu nome é ${ clientProfile.name }, você nasceu no dia ${ clientProfile.birth.getDate() } do ${ clientProfile.birth.getMonth() +1} de ${ clientProfile.birth.getFullYear() },
@@ -233,6 +224,18 @@ class FormClientDialog extends ComponentDialog{
 
         // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is the end.
         return await step.endDialog();
+    }
+
+    calculaIdade(age){
+        let dataDeHoje = new Date();
+        
+        let ano = dataDeHoje.getFullYear() - age;
+
+        if( (dataDeHoje.getMonth()+1) < birthday.month || (dataDeHoje.getDate() < birthday.day && (dataDeHoje.getMonth()+1) == birthday.month)  ){
+            ano--;
+        }
+
+        return ano;
     }
     
     
