@@ -97,7 +97,7 @@ class FormClientDialog extends ComponentDialog{
     async cpfStep(step) {
 
         step.values.gender = step.result.value;
-        const promptOptions = { prompt: `Por favor insira seu CPF:\n EX: 02569011616 ou 025.690.116/16`, retryPrompt: 'O CPF deve ter 11 digitos!' };
+        const promptOptions = { prompt: `Por favor insira seu CPF:\n EX: 02569011616 ou 025.690.116/16`, retryPrompt: 'O CPF esta incorreto. Digite novamente:' };
         return await step.prompt(CPF_PROMPT, promptOptions);
     }
 
@@ -121,32 +121,76 @@ class FormClientDialog extends ComponentDialog{
         return await step.prompt(CONFIRM_PROMPT, {
             prompt: 'Confirma as informações enviadas: ',
             choices: ChoiceFactory.toChoices(['Sim', 'Não'])
-
-    });
+            
+        });
     }
-
+    
     async namePromptValidator (promptContext) {
-
+        
         const nome = promptContext.recognized.value;
         let nomeValido = true;
-
+        
         await fetch(`https://servicodados.ibge.gov.br/api/v2/censos/nomes/${nome}`)
-            .then(res => res.json())
-            .then(data => { if(!data[0])  nomeValido = false; });
-    
-
+        .then(res => res.json())
+        .then(data => { if(!data[0])  nomeValido = false; });
+        
+        
         if (!nomeValido) {
             
             return false;
         }
-
+        
         return nomeValido;
     }
     
     async cpfPropmtValidator (promptContext) {
         const cpfSomenteNumeros = promptContext.recognized.value.toString().replace(/\D/g, '');
+
+        if (!(cpfSomenteNumeros.length == 11)){
+            console.log(promptContext)
+            promptContext.options[0].retryPrompt = 'O CPF deve ter 11 digitos!';            
+            return false;
+        } 
         
-        return cpfSomenteNumeros.length == 11;
+        const cpfArray = cpfSomenteNumeros.split(""); 
+        
+        // validar J
+        let soma = 0;
+        let posicao = 9;
+        let numValidadorJ = cpfArray[posicao];
+        let numMultiplica = 10;
+        
+        for (let i = 0; i <= (posicao-1); i++) {
+            soma += cpfArray[i] * numMultiplica;
+            numMultiplica--;
+        }
+        
+        let restoJ = soma % 11;
+        
+        // valida K
+        soma = 0;
+        posicao = 10;
+        let numValidadorK = cpfArray[posicao];
+        numMultiplica = 11;
+
+        for (let i = 0; i <= (posicao-1); i++) {
+            soma += cpfArray[i] * numMultiplica;
+            numMultiplica--;
+        }
+
+        let restoK = soma % 11;
+        
+        if((restoJ == 0 || restoJ == 1) || (restoK == 0 || restoK == 1)){
+            
+            return numValidadorJ == 0 || numValidadorK == 0;
+        } else if ( (restoJ >= 2 || restoJ <= 10) || (restoK >= 2 || restoK <= 10) ){
+            
+            return numValidadorJ == (11 - restoJ) || numValidadorK == (11 - restoK);
+        }else {
+
+            return false;
+        }
+        
     }
     
     async agePromptValidator (promptContext) {
@@ -237,8 +281,6 @@ class FormClientDialog extends ComponentDialog{
 
         return ano;
     }
-    
-    
 
 
 
