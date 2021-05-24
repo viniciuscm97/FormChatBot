@@ -17,7 +17,7 @@ const fetch = require("node-fetch");
 
 
 const CHOICE_PROMPT = 'CHOICE_PROMPT';
-const CONFIRM_PROMPT = 'CONFIRM_PROMPT';
+const CONFIRM_PROMPT_FINAL = 'CONFIRM_PROMPT_FINAL';
 const NAME_PROMPT = 'NAME_PROMPT';
 const AGE_PROMPT = 'AGE_PROMPT';
 const CPF_PROMPT = 'CPF_PROMPT';
@@ -28,20 +28,21 @@ const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 var clientState = '';
 var clientCity = '';
 var birthday = {day: '', month: ''};
-
+var thisAux = this;
 class FormClientDialog extends ComponentDialog{
     
     constructor(userState) {
         super('formClientDialog')
         
         this.clientProfile = userState.createProperty(USER_PROFILE);
+        
 
         this.addDialog(new TextPrompt(NAME_PROMPT, this.namePromptValidator));
         this.addDialog(new NumberPrompt(AGE_PROMPT, this.agePromptValidator));
         this.addDialog(new TextPrompt(CPF_PROMPT, this.cpfPropmtValidator));
         this.addDialog(new TextPrompt(CEP_PROMPT, this.cepPromptValidator));
         this.addDialog(new DateTimePrompt(BIRTH_PROMPT, this.birthPrompValidator));
-        this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT));
+        this.addDialog(new ChoicePrompt(CONFIRM_PROMPT_FINAL));
         this.addDialog(new ChoicePrompt(CHOICE_PROMPT));
 
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
@@ -72,7 +73,6 @@ class FormClientDialog extends ComponentDialog{
 
     async nameStep(step){
         const promptOptions = { prompt: 'Por favor insira seu nome: ', retryPrompt: 'Nome não foi encontrado na base de dados do IBGE. Digite novamente:' };
-        
         return await step.prompt(NAME_PROMPT, promptOptions); 
     }
     
@@ -118,7 +118,7 @@ class FormClientDialog extends ComponentDialog{
     async confirmStep(step) {
         step.values.birth = step.result;
         
-        return await step.prompt(CONFIRM_PROMPT, {
+        return await step.prompt(CONFIRM_PROMPT_FINAL, {
             prompt: 'Confirma as informações enviadas: ',
             choices: ChoiceFactory.toChoices(['Sim', 'Não'])
             
@@ -126,7 +126,6 @@ class FormClientDialog extends ComponentDialog{
     }
     
     async namePromptValidator (promptContext) {
-        
         const nome = promptContext.recognized.value;
         let nomeValido = true;
         
@@ -147,50 +146,11 @@ class FormClientDialog extends ComponentDialog{
         const cpfSomenteNumeros = promptContext.recognized.value.toString().replace(/\D/g, '');
 
         if (!(cpfSomenteNumeros.length == 11)){
-            console.log(promptContext)
             promptContext.options[0].retryPrompt = 'O CPF deve ter 11 digitos!';            
             return false;
         } 
-        
-        const cpfArray = cpfSomenteNumeros.split(""); 
-        
-        // validar J
-        let soma = 0;
-        let posicao = 9;
-        let numValidadorJ = cpfArray[posicao];
-        let numMultiplica = 10;
-        
-        for (let i = 0; i <= (posicao-1); i++) {
-            soma += cpfArray[i] * numMultiplica;
-            numMultiplica--;
-        }
-        
-        let restoJ = soma % 11;
-        
-        // valida K
-        soma = 0;
-        posicao = 10;
-        let numValidadorK = cpfArray[posicao];
-        numMultiplica = 11;
 
-        for (let i = 0; i <= (posicao-1); i++) {
-            soma += cpfArray[i] * numMultiplica;
-            numMultiplica--;
-        }
-
-        let restoK = soma % 11;
-        
-        if((restoJ == 0 || restoJ == 1) || (restoK == 0 || restoK == 1)){
-            
-            return numValidadorJ == 0 || numValidadorK == 0;
-        } else if ( (restoJ >= 2 || restoJ <= 10) || (restoK >= 2 || restoK <= 10) ){
-            
-            return numValidadorJ == (11 - restoJ) || numValidadorK == (11 - restoK);
-        }else {
-
-            return false;
-        }
-        
+        return FormClientDialog.prototype.validaDigitosCPF(cpfSomenteNumeros);
     }
     
     async agePromptValidator (promptContext) {
@@ -238,7 +198,7 @@ class FormClientDialog extends ComponentDialog{
     }
     async finalStep(step) {
 
-        if (step.result) {
+        if (step.result.value.toLowerCase() == 'sim') {
             const clientProfile = await this.clientProfile.get(step.context, new ClientProfile());
 
             let anoNascimento = this.calculaIdade(step.values.age);
@@ -282,7 +242,39 @@ class FormClientDialog extends ComponentDialog{
         return ano;
     }
 
+    calculaRestoDigitoCPF(cpf, posicao, numMultiplica){
+        let soma = 0;
+        
+        for (let i = 0; i <= (posicao-1); i++) {
+            soma += cpf[i] * numMultiplica;
+            numMultiplica--;
+        }
 
+        return soma % 11;        
+    }
+
+    validaDigitosCPF(cpf){
+        const cpfArray = cpf.split("");
+
+        let numValidadorJ = cpfArray[9];
+        let numValidadorK = cpfArray[10];
+        
+        let restoJ = FormClientDialog.prototype.calculaRestoDigitoCPF(cpfArray,9,10);
+        console.log(restoJ)
+        let restoK = FormClientDialog.prototype.calculaRestoDigitoCPF(cpfArray,10,11);
+        console.log(restoK)
+
+        if((restoJ == 0 || restoJ == 1) || (restoK == 0 || restoK == 1)){
+            
+            return numValidadorJ == 0 || numValidadorK == 0;
+        } else if ( (restoJ >= 2 || restoJ <= 10) || (restoK >= 2 || restoK <= 10) ){
+            
+            return numValidadorJ == (11 - restoJ) || numValidadorK == (11 - restoK);
+        }else {
+
+            return false;
+        }
+    }
 
 
 }
