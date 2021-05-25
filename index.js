@@ -9,22 +9,33 @@ const ENV_FILE = path.join(__dirname, '.env');
 dotenv.config({ path: ENV_FILE });
 
 const restify = require('restify');
+const FORM_DIALOG = 'formClientDialog';
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
 const { BotFrameworkAdapter, MemoryStorage, UserState, ConversationState} = require('botbuilder');
 
 // This bot's main dialog.
-const { FormBot } = require('./bot');
+const {  DialogBot } = require('./bots/Dialogbot');
 const { FormClientDialog } = require('./dialogs/formClientDialog');
+
+// config Luis
+
+const { PedidoLancheRecognizer } = require('./dialogs/PedidoLancheRecognizer');
+const { MainDialog } = require('./dialogs/MainDialog');
+
+const { LuisAppId, LuisAPIKey, LuisAPIHostName } = process.env;
+const luisConfig = { applicationId: LuisAppId, endpointKey: LuisAPIKey, endpoint: `https://${ LuisAPIHostName }` };
+
+const luisRecognizer = new PedidoLancheRecognizer(luisConfig);
 
 
 // Create HTTP server
 const server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log(`\n${ server.name } listening to ${ server.url }`);
-    console.log('\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator');
-    console.log('\nTo talk to your bot, open the emulator select "Open Bot"');
+    // console.log('\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator');
+    // console.log('\nTo talk to your bot, open the emulator select "Open Bot"');
 });
 
 // Create adapter.
@@ -63,16 +74,16 @@ const memoryStorage = new MemoryStorage();
 const conversationState = new ConversationState(memoryStorage);
 const userState = new UserState(memoryStorage);
 
-// Create the main dialog.
-const dialog = new FormClientDialog(userState);
-// create bot
-const myBot = new FormBot(conversationState,userState,dialog);
+//dialogs
+const formClientDialog = new FormClientDialog(FORM_DIALOG);
+const dialog = new MainDialog(luisRecognizer, formClientDialog);
+const myBot = new DialogBot(conversationState,userState,dialog);
 
 // Listen for incoming requests.
 server.post('/api/messages', (req, res) => {
-    adapter.processActivity(req, res, async (context) => {
+    adapter.processActivity(req, res, async (turnContext) => {
         // Route to main dialog.
-        await myBot.run(context);
+        await myBot.run(turnContext);
     });
 });
 

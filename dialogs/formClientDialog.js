@@ -28,13 +28,13 @@ const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 var clientState = '';
 var clientCity = '';
 var birthday = {day: '', month: ''};
-var thisAux = this;
+
 class FormClientDialog extends ComponentDialog{
     
-    constructor(userState) {
-        super('formClientDialog')
+    constructor(id) {
+        super(id || 'formClientDialog')
         
-        this.clientProfile = userState.createProperty(USER_PROFILE);
+        // this.clientProfile = userState.createProperty(USER_PROFILE);
         
 
         this.addDialog(new TextPrompt(NAME_PROMPT, this.namePromptValidator));
@@ -60,23 +60,21 @@ class FormClientDialog extends ComponentDialog{
 
     }
 
-    async run(turnContext, accessor) {
-        const dialogSet = new DialogSet(accessor);
-        dialogSet.add(this);
+    // async run(turnContext, accessor) {
+    //     const dialogSet = new DialogSet(accessor);
+    //     dialogSet.add(this);
 
-        const dialogContext = await dialogSet.createContext(turnContext);
-        const results = await dialogContext.continueDialog();
-        if (results.status === DialogTurnStatus.empty) {
-            await dialogContext.beginDialog(this.id);
-        }
-    }
+    //     const dialogContext = await dialogSet.createContext(turnContext);
+    //     const results = await dialogContext.continueDialog();
+    //     if (results.status === DialogTurnStatus.empty) {
+    //         await dialogContext.beginDialog(this.id);
+    //     }
+    // }
 
     async nameStep(step){
         const promptOptions = { prompt: 'Por favor insira seu nome: ', retryPrompt: 'Nome não foi encontrado na base de dados do IBGE. Digite novamente:' };
         return await step.prompt(NAME_PROMPT, promptOptions); 
     }
-    
-
 
     async ageStep(step){
 

@@ -3,7 +3,7 @@
 
 const { ActivityHandler,  MessageFactory } = require('botbuilder');
 
-class FormBot extends ActivityHandler {
+class DialogBot extends ActivityHandler {
 
     constructor(conversationState, userState, dialog) {
         super();
@@ -50,4 +50,4 @@ class FormBot extends ActivityHandler {
 
 }
 
-module.exports.FormBot = FormBot;
+module.exports.DialogBot = DialogBot;
