@@ -9,7 +9,9 @@ const ENV_FILE = path.join(__dirname, '.env');
 dotenv.config({ path: ENV_FILE });
 
 const restify = require('restify');
+
 const FORM_DIALOG = 'formClientDialog';
+const LOVEAPI_DIALOG = 'loveApiDialog';
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
@@ -18,16 +20,17 @@ const { BotFrameworkAdapter, MemoryStorage, UserState, ConversationState} = requ
 // This bot's main dialog.
 const {  DialogBot } = require('./bots/Dialogbot');
 const { FormClientDialog } = require('./dialogs/formClientDialog');
+const { LoveApiDialog } = require('./dialogs/loveApiDialog');
 
 // config Luis
 
-const { PedidoLancheRecognizer } = require('./dialogs/PedidoLancheRecognizer');
+const { FormClientRecognizer } = require('./dialogs/FormClientRecognizer');
 const { MainDialog } = require('./dialogs/MainDialog');
 
 const { LuisAppId, LuisAPIKey, LuisAPIHostName } = process.env;
 const luisConfig = { applicationId: LuisAppId, endpointKey: LuisAPIKey, endpoint: `https://${ LuisAPIHostName }` };
 
-const luisRecognizer = new PedidoLancheRecognizer(luisConfig);
+const luisRecognizer = new FormClientRecognizer(luisConfig);
 
 
 // Create HTTP server
@@ -75,8 +78,9 @@ const conversationState = new ConversationState(memoryStorage);
 const userState = new UserState(memoryStorage);
 
 //dialogs
-const formClientDialog = new FormClientDialog(FORM_DIALOG);
-const dialog = new MainDialog(luisRecognizer, formClientDialog);
+const formClientDialog = new FormClientDialog(FORM_DIALOG,userState);
+const loveApiDialog = new LoveApiDialog(LOVEAPI_DIALOG);
+const dialog = new MainDialog(luisRecognizer, formClientDialog,loveApiDialog);
 const myBot = new DialogBot(conversationState,userState,dialog);
 
 // Listen for incoming requests.

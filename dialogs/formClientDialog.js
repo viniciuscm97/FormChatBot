@@ -31,10 +31,10 @@ var birthday = {day: '', month: ''};
 
 class FormClientDialog extends ComponentDialog{
     
-    constructor(id) {
+    constructor(id,userState) {
         super(id || 'formClientDialog')
         
-        // this.clientProfile = userState.createProperty(USER_PROFILE);
+        this.clientProfile = userState.createProperty(USER_PROFILE);
         
 
         this.addDialog(new TextPrompt(NAME_PROMPT, this.namePromptValidator));
@@ -60,41 +60,44 @@ class FormClientDialog extends ComponentDialog{
 
     }
 
-    // async run(turnContext, accessor) {
-    //     const dialogSet = new DialogSet(accessor);
-    //     dialogSet.add(this);
-
-    //     const dialogContext = await dialogSet.createContext(turnContext);
-    //     const results = await dialogContext.continueDialog();
-    //     if (results.status === DialogTurnStatus.empty) {
-    //         await dialogContext.beginDialog(this.id);
-    //     }
-    // }
-
     async nameStep(step){
+
         const promptOptions = { prompt: 'Por favor insira seu nome: ', retryPrompt: 'Nome não foi encontrado na base de dados do IBGE. Digite novamente:' };
         return await step.prompt(NAME_PROMPT, promptOptions); 
     }
 
     async ageStep(step){
+        
 
-        step.values.name = step.result        
+        step.values.name = await this.firstToUperCase(step.result);        
         const promptOptions = { prompt: 'Por favor digite a sua idade: ', retryPrompt: 'A idade deve ser entre 0 e 150 anos. Digite novamente:' };
         return await step.prompt(AGE_PROMPT,promptOptions);
         
     }
 
+    async firstToUperCase(name){
+        const nameArray = name.toLowerCase().split("");
+        nameArray[0] = nameArray[0].toUpperCase()
+        return nameArray.join('')
+    }
+
     async genderStep(step) {
         step.values.age = step.result;
-        return await step.prompt(CHOICE_PROMPT,
-            {
-                prompt: 'Escolha seu gênero: ',
-                choices: ChoiceFactory.toChoices(['Homem', 'Mulher', 'Outro'])
-        });
+
+        const formDetails = step.options;
+
+        if (!formDetails.gender) {
+            return await step.prompt(CHOICE_PROMPT,
+                {
+                    prompt: 'Escolha seu gênero: ',
+                    choices: ChoiceFactory.toChoices(['Homem', 'Mulher', 'Outro'])
+            });
+        }
+
+        return await step.next(formDetails.gender);
     }
     async cpfStep(step) {
-
-        step.values.gender = step.result.value;
+        step.values.gender = step.result;
         const promptOptions = { prompt: `Por favor insira seu CPF:\n EX: 02569011616 ou 025.690.116/16`, retryPrompt: 'O CPF esta incorreto. Digite novamente:' };
         return await step.prompt(CPF_PROMPT, promptOptions);
     }
@@ -214,17 +217,13 @@ class FormClientDialog extends ComponentDialog{
 
             let msg = `Seu nome é ${ clientProfile.name }, você nasceu no dia ${ clientProfile.birth.getDate() } do ${ clientProfile.birth.getMonth() +1} de ${ clientProfile.birth.getFullYear() },
              e seu gênero é ${ clientProfile.gender }.
-            Seu CPF é ${ cpfFormatted }, e você reside na cidade ${clientProfile.city} - ${clientProfile.state}.
-            \n Seja bem-vindo! 😊`;
+            Seu CPF é ${ cpfFormatted }, e você reside na cidade ${clientProfile.city} - ${clientProfile.state}`;
             msg += '.';
 
             await step.context.sendActivity(msg);
-
-        } else {
-            await step.context.sendActivity('Obrigado. Suas informações não serão salvas!');
-        }
-
-        // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is the end.
+  
+            return await step.endDialog( clientProfile);
+        } 
         return await step.endDialog();
     }
 
@@ -258,9 +257,7 @@ class FormClientDialog extends ComponentDialog{
         let numValidadorK = cpfArray[10];
         
         let restoJ = FormClientDialog.prototype.calculaRestoDigitoCPF(cpfArray,9,10);
-        console.log(restoJ)
         let restoK = FormClientDialog.prototype.calculaRestoDigitoCPF(cpfArray,10,11);
-        console.log(restoK)
 
         if((restoJ == 0 || restoJ == 1) || (restoK == 0 || restoK == 1)){
             
