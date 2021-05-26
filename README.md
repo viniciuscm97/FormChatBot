@@ -1,6 +1,9 @@
-# Chat bot form
+# Chat bot 
 Developed with Node.js and the Microsoft framework bot.
-Using API's to CEP and name
+Using API's to CEP , name and love API;
+LUIS: natural language recognizer
+
+In the main menu we can use the form dialog, use the APIlove and cancel the chat.
 
 ## Prerequisites
 
