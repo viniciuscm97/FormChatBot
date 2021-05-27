@@ -22,18 +22,43 @@ class FormClientRecognizer {
         return await this.recognizer.recognize(context);
     }
 
-    getGenderEntities(result){
-        let sexoValue, gendersValue;
+    getGenderFormEntities(result){
+        let gender, gendersValue;
         
         if (result.entities.$instance.genders) {
-            sexoValue = result.entities.$instance.genders[0].text;
+            gender = result.entities.$instance.genders[0].text;
         }
-        if (sexoValue && result.entities.genders[0]) {
+        if (gender && result.entities.genders[0]) {
             gendersValue = result.entities.genders[0][0];
         }
 
-        return { sexo: sexoValue, genders: gendersValue };
+        return { gender, genders: gendersValue };
     }
+    getNameFormEntities(result){
+        let name, nameValue;
+        
+        if (result.entities.$instance.nomes) {
+            name = result.entities.$instance.nomes[0].text;
+        }
+        if (name && result.entities.nomes[0]) {
+            nameValue = result.entities.nomes[0];
+        }
+
+        return { name, names: nameValue };
+    }
+    getAgeFormEntities(result){
+        let age, ageValue;
+        
+        if (result.entities.$instance.age) {
+            age = result.entities.$instance.age[0].text;
+        }
+        if (age && result.entities.age[0]) {
+            ageValue = result.entities.age[0].number;
+        }
+
+        return { age, ages: ageValue };
+    }
+
 
     getApiEntities(result){
         // console.log(result)

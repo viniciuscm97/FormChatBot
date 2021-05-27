@@ -61,17 +61,33 @@ class FormClientDialog extends ComponentDialog{
     }
 
     async nameStep(step){
+        const formDetails = step.options;
+        console.log(formDetails)
+        if (!formDetails.name) {
+            const promptOptions = { prompt: 'Por favor insira seu nome: ', retryPrompt: 'Nome não foi encontrado na base de dados do IBGE. Digite novamente:' };
+            return await step.prompt(NAME_PROMPT, promptOptions); 
+        }
 
-        const promptOptions = { prompt: 'Por favor insira seu nome: ', retryPrompt: 'Nome não foi encontrado na base de dados do IBGE. Digite novamente:' };
-        return await step.prompt(NAME_PROMPT, promptOptions); 
+        if (!this.validaNome(formDetails.name)) {
+            const promptOptions = { prompt: 'Nome informado não foi encontrado na base de dados do IBGE. Digite novamente: ', retryPrompt: 'Nome não foi encontrado na base de dados do IBGE. Digite novamente:' };
+            return await step.prompt(NAME_PROMPT, promptOptions); 
+        }
+
+        return await step.next(formDetails.name)
+
     }
 
     async ageStep(step){
-        
+        step.values.name = step.result;
 
-        step.values.name = await this.firstToUperCase(step.result);        
-        const promptOptions = { prompt: 'Por favor digite a sua idade: ', retryPrompt: 'A idade deve ser entre 0 e 150 anos. Digite novamente:' };
-        return await step.prompt(AGE_PROMPT,promptOptions);
+        const formDetails = step.options;
+        
+        if (!formDetails.age) {
+            step.values.name = await this.firstToUperCase(step.result);        
+            const promptOptions = { prompt: 'Por favor digite a sua idade: ', retryPrompt: 'A idade deve ser entre 0 e 150 anos. Digite novamente:' };
+            return await step.prompt(AGE_PROMPT,promptOptions);
+        }
+        return await step.next(formDetails.age)
         
     }
 
@@ -128,19 +144,16 @@ class FormClientDialog extends ComponentDialog{
     
     async namePromptValidator (promptContext) {
         const nome = promptContext.recognized.value;
-        let nomeValido = true;
-        
+
+        return this.validaNome(nome);
+    }
+    async validaNome(nome){
+
         await fetch(`https://servicodados.ibge.gov.br/api/v2/censos/nomes/${nome}`)
         .then(res => res.json())
-        .then(data => { if(!data[0])  nomeValido = false; });
-        
-        
-        if (!nomeValido) {
-            
-            return false;
-        }
-        
-        return nomeValido;
+        .then(data => { if(!data[0])  return false; });
+
+        return true;
     }
     
     async cpfPropmtValidator (promptContext) {

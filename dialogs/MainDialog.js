@@ -47,8 +47,10 @@ class MainDialog extends ComponentDialog {
         }
 
         const messageText = stepContext.options.restartMsg ? stepContext.options.restartMsg : `Diga algo como: 
-        \nOpção cadastro de pessoa: \n       "Cadastrar usuário feminino" ou "Cadastrar cliente masculino"
-        \nOpção compatibilidade no amor: \n "Primeiro nome Joao segundo nome Maria" ou "Joao e Maria`;
+        \nOpção cadastro de pessoa: 
+        \n"Cadastrar usuário feminino de 25 anos" ou "Cadastrar cliente masculino"
+        \nOpção compatibilidade no amor: 
+        \n"Primeiro nome Joao segundo nome Maria" ou "Joao e Maria"`;
         const promptMessage = MessageFactory.text(messageText, messageText, InputHints.ExpectingInput);
         return await stepContext.prompt('TextPrompt', { prompt: promptMessage });
     }
@@ -63,14 +65,20 @@ class MainDialog extends ComponentDialog {
 
         // Call LUIS and gather any potential booking details. (Note the TurnContext has the response to the prompt)
         const luisResult = await this.luisRecognizer.executeLuisQuery(stepContext.context);
-
+        console.log('--------------------------------------------------------------------------------')
+        console.log(luisResult)
         switch (LuisRecognizer.topIntent(luisResult)) {
         case 'CreateUser': {
 
-            // Extract the values for the composite entities from the LUIS result.
-            const genderEntities = this.luisRecognizer.getGenderEntities(luisResult);
-            // Initialize BookingDetails with any entities we may have found in the response.
+            const genderEntities = this.luisRecognizer.getGenderFormEntities(luisResult);
+            const nameEntities = this.luisRecognizer.getNameFormEntities(luisResult);
+            const ageEntities = this.luisRecognizer.getAgeFormEntities(luisResult);
+
             formDetails.gender = genderEntities.genders;
+            formDetails.name = nameEntities.names;
+            formDetails.age = ageEntities.ages;
+            
+
             console.log('LUIS extracted these booking details:', JSON.stringify(formDetails));
 
             // Run the BookingDialog passing in whatever details we have from the LUIS call, it will fill out the remainder.
@@ -104,10 +112,10 @@ class MainDialog extends ComponentDialog {
         return await stepContext.next();
     }
 
-    async showWarningForUnsupportedCities(context, fromEntities) {
+    async showWarningForUnsupportedGenders(context, genderEntities) {
         const unsupportedGenders = [];
-        if (fromEntities.sexo && !fromEntities.genders) {
-            unsupportedGenders.push(fromEntities.from);
+        if (genderEntities.sexo && !genderEntities.genders) {
+            unsupportedGenders.push(genderEntities.from);
         }
 
         if (unsupportedGenders.length) {
