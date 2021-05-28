@@ -46,10 +46,10 @@ class MainDialog extends ComponentDialog {
             return await stepContext.next();
         }
 
-        const messageText = stepContext.options.restartMsg ? stepContext.options.restartMsg : `Diga algo como: 
-        \nOpção cadastro de pessoa: 
+        const messageText = stepContext.options.restartMsg ? stepContext.options.restartMsg : `Opções disponiveis: 
+        \Cadastro de pessoa: 
         \n"Cadastrar usuário feminino de 25 anos" ou "Cadastrar cliente masculino"
-        \nOpção compatibilidade no amor: 
+        \nCompatibilidade no amor: 
         \n"Primeiro nome Joao segundo nome Maria" ou "Joao e Maria"`;
         const promptMessage = MessageFactory.text(messageText, messageText, InputHints.ExpectingInput);
         return await stepContext.prompt('TextPrompt', { prompt: promptMessage });
@@ -65,8 +65,6 @@ class MainDialog extends ComponentDialog {
 
         // Call LUIS and gather any potential booking details. (Note the TurnContext has the response to the prompt)
         const luisResult = await this.luisRecognizer.executeLuisQuery(stepContext.context);
-        console.log('--------------------------------------------------------------------------------')
-        console.log(luisResult)
         switch (LuisRecognizer.topIntent(luisResult)) {
         case 'CreateUser': {
 
@@ -104,7 +102,7 @@ class MainDialog extends ComponentDialog {
 
         default: {
             // Catch all for unhandled intents  
-            const didntUnderstandMessageText = `Sorry, I didn't get that. Please try asking in a different way (intent was ${ LuisRecognizer.topIntent(luisResult) })`;
+            const didntUnderstandMessageText = `Desculpe, não entendi o que foi informado. Tente de outro jeito (intenção foi ${ LuisRecognizer.topIntent(luisResult) })`;
             await stepContext.context.sendActivity(didntUnderstandMessageText, didntUnderstandMessageText, InputHints.IgnoringInput);
         }
         }

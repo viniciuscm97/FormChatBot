@@ -2,9 +2,6 @@ const {
     ChoiceFactory,     
     ChoicePrompt,
     ComponentDialog,
-    ConfirmPrompt,
-    DialogSet,
-    DialogTurnStatus,
     NumberPrompt,
     TextPrompt,
     WaterfallDialog,
@@ -113,7 +110,8 @@ class FormClientDialog extends ComponentDialog{
         return await step.next(formDetails.gender);
     }
     async cpfStep(step) {
-        step.values.gender = step.result;
+        step.values.gender = step.result.value ? step.result.value : step.result;
+
         const promptOptions = { prompt: `Por favor insira seu CPF:\n EX: 02569011616 ou 025.690.116/16`, retryPrompt: 'O CPF esta incorreto. Digite novamente:' };
         return await step.prompt(CPF_PROMPT, promptOptions);
     }
